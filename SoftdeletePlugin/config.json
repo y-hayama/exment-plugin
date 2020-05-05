@@ -1,0 +1,11 @@
+{
+    "uuid": "529f9ef0-8e72-11ea-ab12-0800200c9a66",
+    "plugin_name": "SoftdeleteData",
+    "plugin_view_name": "データの論理削除",
+    "description": "データを論理削除します",
+    "author": "Yui Hayama",
+    "version": "1.0.0",
+    "plugin_type": "trigger",
+    "event_triggers": "grid_menubutton",
+    "label": "SoftdeleteData"
+}

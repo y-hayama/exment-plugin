@@ -1,0 +1,13 @@
+{
+    "plugin_name": "WorkableSync",
+    "uuid": "6ebd7df0-8cab-11ea-ab12-0800200c9a66",
+    "plugin_view_name": "Sync Workable Candidate",
+    "description": "Workableの候補者データを同期する",
+    "author": "Yui Hayama",
+    "version": "1.0.0",
+    "plugin_type": "batch,trigger",
+    "event_triggers": "grid_menubutton",
+    "label": "WorkableSync",
+    "icon": "fa-database",
+    "batch_cron": "0 9 * * *"
+}
