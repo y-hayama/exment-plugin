@@ -24,7 +24,7 @@ class PluginBatch extends PluginBatchBase {
 
         try {
             $table_name = $this->plugin->getCustomOption(PluginSetting::TABLE);
-            $updated_after = $this->plugin->getCustomOption(PluginSetting::UPDATED_AFTER);
+            $updated_after = $this->plugin->getCustomOption(PluginSetting::BATCH_UPDATED_AFTER);
             $access_key = $this->plugin->getCustomOption(PluginSetting::ACCESS_KEY);
             if ($table_name == null || $updated_after == null || $access_key == null) {
                 throw new \Exception("必要なパラメータが入力されていません");
@@ -34,7 +34,7 @@ class PluginBatch extends PluginBatchBase {
             $exment = new ExmentRepository();
             $table = CustomTable::getEloquent($table_name);
 
-            $candidates = $workable->getCandidate(new \DateTime("$updated_after day"));
+            $candidates = $workable->getCandidate(new \DateTime("-$updated_after day"));
             //\Log::debug(var_export($candidates, true));
             $result = $exment->store($table, $candidates);
             $this->log($result . "件のデータを取得しました");
