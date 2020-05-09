@@ -1,10 +1,10 @@
 <?php
 namespace App\Plugins\HarddeleteData;
 
-use Exceedone\Exment\Services\Plugin\PluginTriggerBase;
+use Exceedone\Exment\Services\Plugin\PluginButtonBase;
 use Exceedone\Exment\Model\CustomTable;
 
-class Plugin extends PluginTriggerBase{
+class Plugin extends PluginButtonBase{
     private const TABLE='table';
 
     // カスタムパラメータ有効化

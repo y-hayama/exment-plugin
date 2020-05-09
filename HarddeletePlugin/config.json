@@ -5,7 +5,7 @@
     "description": "論理削除しているすべてのデータを、完全に削除します。",
     "author": "Yui Hayama",
     "version": "1.0.0",
-    "plugin_type": "trigger",
+    "plugin_type": "button",
     "event_triggers": "grid_menubutton",
     "label": "HarddeleteData"
 }
