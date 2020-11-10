@@ -15,8 +15,8 @@ class PluginSetting extends PluginSettingBase {
     public function setCustomOptionForm(&$form) {
         $form->text(self::SLACK_TOKEN, 'Slackトークン')
             ->help('Slackトークンを入力してください');
-            $form->text(self::SLACK_WEBHOOK, 'Slack Webhook URL')
-                ->help('Slack Webhook URLを入力してください');
+        $form->text(self::SLACK_WEBHOOK, 'Slack Webhook URL')
+            ->help('Slack Webhook URLを入力してください');
     }
 
 }
