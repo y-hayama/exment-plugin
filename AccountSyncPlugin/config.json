@@ -1,0 +1,11 @@
+{
+    "uuid": "9fe8a7a0-1771-11eb-8b6f-0800200c9a66",
+    "plugin_name": "AccountSync",
+    "plugin_view_name": "AccountSync",
+    "description": "Slackのユーザを取り込みます",
+    "author": "Yui Hayama",
+    "version": "1.0.0",
+    "plugin_type": "batch,button",
+    "event_triggers": "grid_menubutton",
+    "label": "AccountSync"
+}

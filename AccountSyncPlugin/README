@@ -1,0 +1,5 @@
+*Slackのアカウントをexmentに取り込むプラグイン*
+
+**事前にsrc配下に以下のファイルを配置すること
+credentials.json ・・・ Google Credentialファイル
+token.json ・・・ Google OAuth認証トークン

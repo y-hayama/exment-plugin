@@ -1,3 +1,5 @@
 .DS_Store
 ~$*.xlsx
 *.zip
+credentials.json
+token.json
