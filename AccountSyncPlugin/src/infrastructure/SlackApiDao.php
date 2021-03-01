@@ -1,7 +1,11 @@
 <?php
 namespace App\Plugins\AccountSync;
 
-class Slack {
+require_once __DIR__ . '/../dao/Dao.php';
+
+use Exceedone\Exment\Model\CustomTable;
+
+class SlackApiDao implements SlackDao {
     protected $token;
     private const TIMEOUT = 300;
 
@@ -49,6 +53,32 @@ class Slack {
         return $members;
     }
 
+    public function saveMembers(string $tableName, array $members)
+    {
+        $table = CustomTable::getEloquent($tableName);
+        foreach ($members as $member) {
+            $model = $table->getValueModel();
+            $result = $model->where("value->userid", $member["id"])->first();
+            if(isset($result)) {
+                $model = $result;
+            }
+
+            $model->setValue("userid", $member["id"]);
+            $model->setValue("username", $member["name"]);
+            $model->setValue("displayname", $member["profile"]["display_name"]);
+            $model->setValue("fullname", $member["profile"]["real_name"]);
+            $model->setValue("email", $member["profile"]["email"]);
+            $model->setValue("status", $member["status"]);
+            $model->setValue("billing-active", $member["billingActive"]);
+
+            $result = $model->save();
+    
+            // Logger::log(var_export($result, true));
+        }
+
+        return count($members);
+    }
+
     private function getMemberInfo() {
         $members = array();
         $cursor = "";
@@ -58,14 +88,14 @@ class Slack {
             $response = $this->sendGetRequest($endpoint);
             $contents = json_decode($response->getBody()->getContents(), true);
 
-            $this->log("Slack OK status: " . $contents["ok"]);
-            $this->log("Get members count: " . count($contents["members"]));
+            Logger::log("Slack OK status: " . $contents["ok"]);
+            Logger::log("Get members count: " . count($contents["members"]));
             $members = array_merge($members, $contents["members"]);
             $cursor = $contents["response_metadata"]["next_cursor"];
-            $this->log("Next cursor: " . $cursor);
+            Logger::log("Next cursor: " . $cursor);
         } while($cursor != "");
 
-        $this->log("All members count: " . count($members));
+        Logger::log("All members count: " . count($members));
         return $members;
     }
 
@@ -74,8 +104,8 @@ class Slack {
         $response = $this->sendGetRequest($endpoint);
         $contents = json_decode($response->getBody()->getContents(), true);
 
-        $this->log("Slack OK status: " . $contents["ok"]);
-        $this->log("Billable info count: " . count($contents["billable_info"]));
+        Logger::log("Slack OK status: " . $contents["ok"]);
+        Logger::log("Billable info count: " . count($contents["billable_info"]));
 
         return $contents["billable_info"];
     }
@@ -91,21 +121,17 @@ class Slack {
             'timeout' => self::TIMEOUT
         ]);
 
-        $this->log("SlackAPIを実行しました");
-        $this->log("HTTP Status Code: " . $response->getStatusCode());
-        $this->log("HTTP Status: " . $response->getReasonPhrase());
+        Logger::log("SlackAPIを実行しました");
+        Logger::log("HTTP Status Code: " . $response->getStatusCode());
+        Logger::log("HTTP Status: " . $response->getReasonPhrase());
 
         if($response->getStatusCode() != 200 ) {
-            $this->log("API Request error");
-            $this->log("HTTP Body: " . $response->getBody());
+            Logger::log("API Request error");
+            Logger::log("HTTP Body: " . $response->getBody());
             throw new \Exception("SlackAPI リクエストエラー");
         }
 
         return $response;
-    }
-
-    private function log(string $message) {
-        \Log::debug($message);
     }
 
 }

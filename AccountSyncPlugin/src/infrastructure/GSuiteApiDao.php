@@ -1,11 +1,18 @@
 <?php
 namespace App\Plugins\AccountSync;
 
-class GSuite {
+require_once __DIR__ . '/../dao/Dao.php';
+
+use Exceedone\Exment\Model\CustomTable;
+
+class GSuiteApiDao implements GSuiteDao {
+
+    private const TOKEN = '/../token.json';
+    private const CREDENTIALS = '/../credentials.json';
 
     public function getMembers()
     {
-        $this->log("Get gsuite members");
+        Logger::log("Get gsuite members");
         // Get the API client and construct the service object.
         $client = $this->getClient();
         $service = new \Google_Service_Directory($client);
@@ -20,15 +27,16 @@ class GSuite {
                 'pageToken' => $pageToken
             );
             $results = $service->users->listUsers($optParams);
-            $this->log("Get members count: " . count($results['users']));
-            $this->log("Next pageToken: " . $results['nextPageToken']);
+            Logger::log("Get members count: " . count($results['users']));
+            Logger::log("Next pageToken: " . $results['nextPageToken']);
 
-            // $this->log("gettype: " . gettype($results['users']));
+            // Logger::log("gettype: " . gettype($results['users']));
+
             $members = array_merge($members, $results['users']);
             $pageToken = $results['nextPageToken'];
         } while($pageToken != '');
 
-        $this->log("All members count: " . count($members));
+        Logger::log("All members count: " . count($members));
 
         // データ加工
         foreach($members as &$member) {
@@ -36,6 +44,30 @@ class GSuite {
         }
 
         return $members;
+    }
+    
+    public function saveMembers(string $tableName, array $members)
+    {
+        $table = CustomTable::getEloquent($tableName);
+        foreach ($members as $member) {
+            $model = $table->getValueModel();
+            $result = $model->where("value->gsuite_id", $member["id"])->first();
+            if(isset($result)) {
+                $model = $result;
+            }
+
+            $model->setValue("gsuite_id", $member["id"]);
+            $model->setValue("firstname", $member["name"]["givenName"]);
+            $model->setValue("lastname", $member["name"]["familyName"]);
+            $model->setValue("emailaddress", $member["primaryEmail"]);
+            $model->setValue("status", $member["status"]);
+            $model->setValue("lastsignIn", $member["lastLoginTime"]);
+            $result = $model->save();
+    
+            // Logger::log(var_export($result, true));
+        }
+
+        return count($members);
     }
 
     /**
@@ -47,7 +79,7 @@ class GSuite {
         $client = new \Google_Client();
         $client->setApplicationName('exment');
         $client->setScopes(\Google_Service_Directory::ADMIN_DIRECTORY_USER_READONLY);
-        $client->setAuthConfig(dirname(__FILE__) . '/credentials.json');
+        $client->setAuthConfig(dirname(__FILE__) . self::CREDENTIALS);
         $client->setAccessType('offline');
         $client->setPrompt('select_account consent');
 
@@ -55,7 +87,7 @@ class GSuite {
         // The file token.json stores the user's access and refresh tokens, and is
         // created automatically when the authorization flow completes for the first
         // time.
-        $tokenPath = dirname(__FILE__) . '/token.json';
+        $tokenPath = dirname(__FILE__) . self::TOKEN;
         if (file_exists($tokenPath)) {
             $accessToken = json_decode(file_get_contents($tokenPath), true);
             $client->setAccessToken($accessToken);
@@ -89,11 +121,6 @@ class GSuite {
             file_put_contents($tokenPath, json_encode($client->getAccessToken()));
         }
         return $client;
-    }
-
-    private function log(string $message) {
-        \Log::debug($message);
-        // echo $message . "\n";
     }
 
 }

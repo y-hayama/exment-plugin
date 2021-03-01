@@ -1,7 +1,7 @@
 <?php
 namespace App\Plugins\AccountSync;
 
-require_once __DIR__ . '/src/AccountSync.php';
+require_once __DIR__ . '/AccountSync.php';
 
 use Exceedone\Exment\Services\Plugin\PluginBatchBase;
 

@@ -1,9 +1,9 @@
 ZIPFILE = Plugin.zip
-BUILD_TARGET = *.php config.json src
+BUILD_TARGET = ./
 
 .PHONY: all
 all: clean
-	zip -r $(ZIPFILE) $(BUILD_TARGET)
+	cd src && zip -r ../$(ZIPFILE) $(BUILD_TARGET)
 
 .PHONY: clean
 clean:
