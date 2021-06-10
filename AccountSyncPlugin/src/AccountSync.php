@@ -29,6 +29,7 @@ class AccountSync {
         $exment->setWebHookUrl($this->slack_webhook);
         $_ = function($s){return $s;};
 
+
         try {
             $exment->sendMessage("AccountSyncを実行しました");
 
@@ -39,6 +40,10 @@ class AccountSync {
             $gsuiteMembers = $gsuite->getMembers();
             Logger::log("テーブルにデータを保存します");
             $resultGsuite = $gsuite->saveMembers(self::GSUITE_TABLE, $gsuiteMembers);
+
+            $latestLoginLogs = $slack->getLastLoginLogs();
+            Logger::log("テーブルにデータを保存します");
+            $resultSlackLogs = $slack->saveLatestLoginLogs(self::SLACK_TABLE, $latestLoginLogs);
 
             $resultTempSlack = $exment->linkId(self::TEMP_TABLE, self::SLACK_TABLE, 'address', 'email');
             $resultEmplSlack = $exment->linkId(self::EMPL_TABLE, self::SLACK_TABLE, 'work_email', 'email');
@@ -52,6 +57,7 @@ class AccountSync {
 結果
 ```
 ・Slackアカウントを{$resultSlack}件処理しました
+・Slackログイン情報を{$resultSlackLogs}件処理しました
 ・GSuiteアカウントを{$resultGsuite}件処理しました
 ・{$_(self::TEMP_TABLE)}と{$_(self::SLACK_TABLE)}のデータを{$resultTempSlack}件紐付けました
 ・{$_(self::EMPL_TABLE)}と{$_(self::SLACK_TABLE)}のデータを{$resultEmplSlack}件紐付けました
