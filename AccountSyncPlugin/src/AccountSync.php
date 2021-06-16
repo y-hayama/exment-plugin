@@ -43,7 +43,11 @@ class AccountSync {
 
             $latestLoginLogs = $slack->getLastLoginLogs();
             Logger::log("テーブルにデータを保存します");
-            $resultSlackLogs = $slack->saveLatestLoginLogs(self::SLACK_TABLE, $latestLoginLogs);
+            $resultSlackLoginLogs = $slack->saveLatestLoginLogs(self::SLACK_TABLE, $latestLoginLogs);
+
+            $latestLogoutLogs = $slack->getLastLogoutLogs();
+            Logger::log("テーブルにデータを保存します");
+            $resultSlackLogoutLogs = $slack->saveLatestLogoutLogs(self::SLACK_TABLE, $latestLogoutLogs);
 
             $resultTempSlack = $exment->linkId(self::TEMP_TABLE, self::SLACK_TABLE, 'address', 'email');
             $resultEmplSlack = $exment->linkId(self::EMPL_TABLE, self::SLACK_TABLE, 'work_email', 'email');
@@ -57,7 +61,8 @@ class AccountSync {
 結果
 ```
 ・Slackアカウントを{$resultSlack}件処理しました
-・Slackログイン情報を{$resultSlackLogs}件処理しました
+・Slackログイン情報を{$resultSlackLoginLogs}件処理しました
+・Slackログアウト情報を{$resultSlackLogoutLogs}件処理しました
 ・GSuiteアカウントを{$resultGsuite}件処理しました
 ・{$_(self::TEMP_TABLE)}と{$_(self::SLACK_TABLE)}のデータを{$resultTempSlack}件紐付けました
 ・{$_(self::EMPL_TABLE)}と{$_(self::SLACK_TABLE)}のデータを{$resultEmplSlack}件紐付けました
