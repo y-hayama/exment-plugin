@@ -1,9 +1,11 @@
 <?php
-namespace App\Plugins\AccountSync;
+namespace App\Plugins\AccountSync\Infrastructure;
 
-require_once __DIR__ . '/../dao/Dao.php';
+require_once __DIR__ . '/../Dao/Dao.php';
 
 use Exceedone\Exment\Model\CustomTable;
+use App\Plugins\AccountSync\Utils\Logger;
+use App\Plugins\AccountSync\Dao\GSuiteDao;
 
 class GSuiteApiDao implements GSuiteDao {
 

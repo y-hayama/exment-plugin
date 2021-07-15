@@ -1,9 +1,13 @@
 <?php
 namespace App\Plugins\AccountSync;
 
-require_once __DIR__ . '/factory/DaoFactory.php';
-require_once __DIR__ . '/dao/Dao.php';
-require_once __DIR__ . '/model/Exment.php';
+require_once __DIR__ . '/Factory/DaoFactory.php';
+require_once __DIR__ . '/Dao/Dao.php';
+require_once __DIR__ . '/Model/Exment.php';
+
+use App\Plugins\AccountSync\Factory\DaoFactory;
+use App\Plugins\AccountSync\Model\Exment;
+use App\Plugins\AccountSync\Utils\Logger;
 
 class AccountSync {
 
@@ -49,6 +53,10 @@ class AccountSync {
             Logger::log("テーブルにデータを保存します");
             $resultSlackLogoutLogs = $slack->saveLatestLogoutLogs(self::SLACK_TABLE, $latestLogoutLogs);
 
+            $latestActivityLogs = $slack->getLastActivityLogs();
+            Logger::log("テーブルにデータを保存します");
+            $resultSlackActivityLogs = $slack->saveLatestActivityLogs(self::SLACK_TABLE, $latestActivityLogs);
+
             $resultTempSlack = $exment->linkId(self::TEMP_TABLE, self::SLACK_TABLE, 'address', 'email');
             $resultEmplSlack = $exment->linkId(self::EMPL_TABLE, self::SLACK_TABLE, 'work_email', 'email');
             $resultEmpl2Slack = $exment->linkId(self::EMPL2_TABLE, self::SLACK_TABLE, 'work_email', 'email');
@@ -63,6 +71,7 @@ class AccountSync {
 ・Slackアカウントを{$resultSlack}件処理しました
 ・Slackログイン情報を{$resultSlackLoginLogs}件処理しました
 ・Slackログアウト情報を{$resultSlackLogoutLogs}件処理しました
+・Slackアクティビティ情報を{$resultSlackActivityLogs}件処理しました
 ・GSuiteアカウントを{$resultGsuite}件処理しました
 ・{$_(self::TEMP_TABLE)}と{$_(self::SLACK_TABLE)}のデータを{$resultTempSlack}件紐付けました
 ・{$_(self::EMPL_TABLE)}と{$_(self::SLACK_TABLE)}のデータを{$resultEmplSlack}件紐付けました

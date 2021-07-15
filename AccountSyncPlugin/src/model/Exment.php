@@ -1,10 +1,11 @@
 <?php
-namespace App\Plugins\AccountSync;
+namespace App\Plugins\AccountSync\Model;
 
 use Exceedone\Exment\Model\CustomTable;
 use Exceedone\Exment\Model\CustomColumn;
 use Exceedone\Exment\Model\CustomRelation;
 use Exceedone\Exment\Services\NotifyService;
+use App\Plugins\AccountSync\Utils\Logger;
 
 class Exment {
 

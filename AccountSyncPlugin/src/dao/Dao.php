@@ -1,5 +1,5 @@
 <?php
-namespace App\Plugins\AccountSync;
+namespace App\Plugins\AccountSync\Dao;
 
 interface SlackDao {
     public function getMembers();

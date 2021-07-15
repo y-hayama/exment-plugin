@@ -1,60 +1,52 @@
 <?php
-namespace App\Plugins\AccountSync;
+namespace App\Plugins\AccountSync\Infrastructure;
 
-require_once __DIR__ . '/../dao/Dao.php';
+require_once __DIR__ . '/../Dao/Dao.php';
 
 use Exceedone\Exment\Model\CustomTable;
+use App\Plugins\AccountSync\Utils\Logger;
+use App\Plugins\AccountSync\Dao\SlackDao;
 
 class SlackApiDao implements SlackDao {
     protected $token;
     private const TIMEOUT = 300;
+    private const UB_TEAMID = 'T02DQ211A';
 
     function __construct(string $token) {
         $this->token = $token;
     }
 
-    public function getLastLoginLogs()
-    {
-        $loginLogs = array();
-        $cursor = "";
-        $limit = 1000;
-        $oldest = strtotime("-2 week");
-        do {
-            $endpoint = "https://api.slack.com/audit/v1/logs?action=user_login" . "&limit=$limit" . "&cursor=$cursor" . "&oldest=$oldest";
-            $contents = $this->sendGetRequest($endpoint);
-            $entries = $contents["entries"];
-            $cursor = $contents["response_metadata"]["next_cursor"];
-            $loginLogs = array_merge($loginLogs, $contents["entries"]);
-
-            Logger::log("Get logs count: " . count($entries));
-            Logger::log("Next cursor: " . $cursor);
-        } while($cursor != "");
-
-        $latestLoginLogs = $this->removeDuplicateLoginLogs($loginLogs);
-
-        return $latestLoginLogs;
+    public function getLastLoginLogs() {
+        return $this->getLastLogs("user_login");
     }
 
-    public function getLastLogoutLogs()
-    {
-        $logoutLogs = array();
+    public function getLastLogoutLogs() {
+        return $this->getLastLogs("user_logout");
+    }
+
+    public function getLastActivityLogs() {
+        return $this->getLastLogs("");
+    }
+
+    private function getLastLogs(string $action) {
+        $logs = array();
         $cursor = "";
-        $limit = 1000;
-        $oldest = strtotime("-2 week");
+        $limit = 5000;
+        $oldest = strtotime("-1 week");
         do {
-            $endpoint = "https://api.slack.com/audit/v1/logs?action=user_logout" . "&limit=$limit" . "&cursor=$cursor" . "&oldest=$oldest";
+            $endpoint = "https://api.slack.com/audit/v1/logs?action=${action}" . "&limit=$limit" . "&cursor=$cursor" . "&oldest=$oldest";
             $contents = $this->sendGetRequest($endpoint);
             $entries = $contents["entries"];
             $cursor = $contents["response_metadata"]["next_cursor"];
-            $logoutLogs = array_merge($logoutLogs, $contents["entries"]);
+            $logs = array_merge($logs, $contents["entries"]);
 
             Logger::log("Get logs count: " . count($entries));
             Logger::log("Next cursor: " . $cursor);
         } while($cursor != "");
 
-        $latestLogoutLogs = $this->removeDuplicateLogoutLogs($logoutLogs);
+        $latestLogs = $this->removeDuplicateLogs($logs);
 
-        return $latestLogoutLogs;
+        return $latestLogs;
     }
 
     public function getMembers() {
@@ -124,39 +116,33 @@ class SlackApiDao implements SlackDao {
     }
 
     public function saveLatestLoginLogs(string $tableName, array $latestLoginLogs) {
-        $table = CustomTable::getEloquent($tableName);
-        foreach ($latestLoginLogs as $log) {
-            $userid = $log["actor"]["user"]["id"];
-            $email = $log["actor"]["user"]["email"];
-            $latestLoginTime = date("Y-m-d H:i:s", $log["date_create"]);
-
-            $model = $table->getValueModel();
-            $model = $model->where("value->userid", $userid)->first();
-            $model->setValue("userid", $userid);
-            $model->setValue("email", $email);
-            $model->setValue("lastsignIn", $latestLoginTime);
-            $result = $model->save();
-        }
-
-        return count($latestLoginLogs);
+        return $this->saveLogs($tableName, "lastsignIn", $latestLoginLogs);
     }
 
     public function saveLatestLogoutLogs(string $tableName, array $latestLogoutLogs) {
+        return $this->saveLogs($tableName, "lastsignout", $latestLogoutLogs);
+    }
+
+    public function saveLatestActivityLogs(string $tableName, array $latestActivityLogs) {
+        return $this->saveLogs($tableName, "last-activity", $latestActivityLogs);
+    }
+
+    private function saveLogs(string $tableName, string $colmun, array $logs) {
         $table = CustomTable::getEloquent($tableName);
-        foreach ($latestLogoutLogs as $log) {
+        foreach ($logs as $log) {
             $userid = $log["actor"]["user"]["id"];
             $email = $log["actor"]["user"]["email"];
-            $latestLogoutTime = date("Y-m-d H:i:s", $log["date_create"]);
+            $latestTime = date("Y-m-d H:i:s", $log["date_create"]);
 
             $model = $table->getValueModel();
             $model = $model->where("value->userid", $userid)->first();
             $model->setValue("userid", $userid);
             $model->setValue("email", $email);
-            $model->setValue("lastsignout", $latestLogoutTime);
+            $model->setValue($colmun, $latestTime);
             $result = $model->save();
         }
 
-        return count($latestLogoutLogs);
+        return count($logs);
     }
 
     private function getMemberInfo() {
@@ -186,6 +172,47 @@ class SlackApiDao implements SlackDao {
         Logger::log("Billable info count: " . count($contents["billable_info"]));
 
         return $contents["billable_info"];
+    }
+
+    private function removeDuplicateLogs(array $logs) {
+        Logger::log("total logs count: " . count($logs));
+
+        // ログが複数あるメールアドレスを取り出す
+        $allEmailList = array();
+        foreach ($logs as $log) {
+            $allEmailList[] = $log["actor"]["user"]["email"];
+        }
+        $uniqEmailList = array_count_values($allEmailList);
+        $duplicateEmailList = array_filter($uniqEmailList, function($v){return --$v;});
+        Logger::log("total uniq email count: " . count($uniqEmailList));
+        Logger::log("dup email count: " . count($duplicateEmailList));
+
+        // ログが複数あるメールアドレスについて最新のログ以外を削除する
+        foreach ($duplicateEmailList as $email => $count) {
+            $duplicateLogs = array_filter($logs, function($log) use ($email) {
+                return strcmp($log["actor"]["user"]["email"], $email) == 0;
+            });
+
+            // 降順にログが帰ってくるので最初のログが最新のログになる
+            $latestLogKey = array_key_first($duplicateLogs);
+            // $lastLoginTime = max(array_column($duplicateLogs, "date_create"));
+            foreach ($duplicateLogs as $k => $v) {
+                if($k != $latestLogKey) unset($logs[$k]);
+            }
+        }
+
+        // UB以外のworkspaceユーザの場合はログを削除する
+        foreach ($logs as $key => $log) {
+            if(strcmp($log["actor"]["user"]["team"],  self::UB_TEAMID) != 0) {
+                Logger::log($log["actor"]["user"]["id"] . " " . $log["actor"]["user"]["email"] . " is not ub account");
+                unset($logs[$key]);
+            }
+        }
+
+        Logger::log("dup logs count: " . array_sum($duplicateEmailList));
+        Logger::log("last logs count: " . count($logs));
+
+        return $logs;
     }
 
     private function removeDuplicateLoginLogs(array $loginLogs) {
@@ -221,12 +248,12 @@ class SlackApiDao implements SlackDao {
         return $loginLogs;
     }
 
-    private function removeDuplicateLogoutLogs(array $loginLogs) {
-        Logger::log("total logs count: " . count($loginLogs));
+    private function removeDuplicateLogoutLogs(array $logoutLogs) {
+        Logger::log("total logs count: " . count($logoutLogs));
 
         // ログインログが複数あるメールアドレスを取り出す
         $allEmailList = array();
-        foreach ($loginLogs as $log) {
+        foreach ($logoutLogs as $log) {
             $allEmailList[] = $log["actor"]["user"]["email"];
         }
         $uniqEmailList = array_count_values($allEmailList);
@@ -236,7 +263,7 @@ class SlackApiDao implements SlackDao {
 
         // ログインログが複数あるメールアドレスについて最新のログ以外を削除する
         foreach ($duplicateEmailList as $email => $count) {
-            $duplicateLogs = array_filter($loginLogs, function($log) use ($email) {
+            $duplicateLogs = array_filter($logoutLogs, function($log) use ($email) {
                 return strcmp($log["actor"]["user"]["email"], $email) == 0;
             });
 
@@ -244,14 +271,14 @@ class SlackApiDao implements SlackDao {
             $latestLogKey = array_key_first($duplicateLogs);
             // $lastLoginTime = max(array_column($duplicateLogs, "date_create"));
             foreach ($duplicateLogs as $k => $v) {
-                if($k != $latestLogKey) unset($loginLogs[$k]);
+                if($k != $latestLogKey) unset($logoutLogs[$k]);
             }
         }
         
         Logger::log("dup logs count: " . array_sum($duplicateEmailList));
-        Logger::log("last logs count: " . count($loginLogs));
+        Logger::log("last logs count: " . count($logoutLogs));
 
-        return $loginLogs;
+        return $logoutLogs;
     }
 
     private function sendGetRequest(string $url)

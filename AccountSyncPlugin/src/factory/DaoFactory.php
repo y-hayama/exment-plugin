@@ -1,8 +1,11 @@
 <?php
-namespace App\Plugins\AccountSync;
+namespace App\Plugins\AccountSync\Factory;
 
-require_once __DIR__ . '/../infrastructure/GSuiteApiDao.php';
-require_once __DIR__ . '/../infrastructure/SlackApiDao.php';
+require_once __DIR__ . '/../Infrastructure/GSuiteApiDao.php';
+require_once __DIR__ . '/../Infrastructure/SlackApiDao.php';
+
+use App\Plugins\AccountSync\Infrastructure\SlackApiDao;
+use App\Plugins\AccountSync\Infrastructure\GSuiteApiDao;
 
 class DaoFactory {
 
